@@ -1,0 +1,9 @@
+# 依赖的唯一事实来源是 pyproject.toml；本文件仅为 `pip install -r` 的便利入口。
+# 开发环境请用：pip install -e ".[dev]"
+
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+PyYAML>=6.0
+fastapi>=0.110
+uvicorn[standard]>=0.29

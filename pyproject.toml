@@ -1,0 +1,40 @@
+[project]
+name = "wechat-attraction-crawler"
+version = "1.1.0"
+description = "抓取中国热门景点官方公众号的出行公告，统一为只读 HTTP API 供多平台调用"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "tonghaoxu" }]
+keywords = ["wechat", "crawler", "fastapi", "tourism", "china"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "PyYAML>=6.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+wechat-crawler = "wechat_crawler.main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["wechat_crawler"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

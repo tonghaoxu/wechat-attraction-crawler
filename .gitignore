@@ -1,0 +1,25 @@
+# 凭证（公众号后台 token/cookie），绝不入库
+credentials.yaml
+
+# 抓取数据与导出产物
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 日志与临时文件
+*.log
+
+# 本地工具与编辑器
+.claude/
+.vscode/
+.idea/
+
+# 测试与构建产物
+.pytest_cache/
+*.egg-info/
+dist/
+build/

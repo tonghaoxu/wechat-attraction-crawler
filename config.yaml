@@ -1,0 +1,377 @@
+# ============================================================
+# 微信公众号景点爬虫配置
+# ============================================================
+
+# 凭证：登录 https://mp.weixin.qq.com 后获取（见 README.md 第 2 步）
+credentials:
+  token: ""        # 登录后地址栏 URL 里的 token=xxxxxx
+  cookie: ""       # F12 -> Network -> 任意请求 -> Request Headers -> Cookie 整串复制
+
+crawl:
+  pages_per_account: 1    # 每个公众号抓几页文章列表（每页 5 篇），只要最新内容设 1 即可
+  min_delay: 12           # 两次请求之间的最小间隔（秒），不要调低，容易被冻结
+  max_delay: 25           # 最大间隔（秒）
+  fetch_content: true     # 是否抓取文章正文（false 则只存标题/链接/摘要）
+  max_age_days: 90        # 只抓最近 N 天内发布的文章，0 = 不限时间
+
+  # 游客相关性过滤：只保留影响出行的公告（开闭园/票价/临时闭馆/交通/天气等），
+  # 过滤掉招聘、党建、文创带货、活动宣传等对游客无用的内容。
+  # 在抓正文之前基于标题+摘要判断，能大幅减少无效请求。
+  filter:
+    enabled: true
+    # 下面留空则使用 wechat_crawler/filter.py 里的内置默认词表；
+    # 如需定制，可在此追加/覆盖（填了就完全替换默认词表）。
+    include_keywords: []
+    exclude_keywords: []
+
+storage:
+  db_path: data/articles.db
+  export_dir: data/export
+
+# HTTP API 服务（python -m wechat_crawler serve）
+# 供 Telegram Bot / 微信客服 / 官网等多平台统一取数
+api:
+  host: 0.0.0.0
+  port: 8000
+  # 为每个接入平台各发一个 key（请求头 X-API-Key）。留空 = 不鉴权（仅限本机调试）
+  api_keys:
+    - ""   # 例如: tg-bot-xxxxxxxx
+  # 允许跨域的来源（官网前端直接调用时填官网域名）；["*"] 表示不限制
+  cors_origins:
+    - "*"
+
+# 目标景点公众号清单：外国游客常去的中国旅游景点官方公众号
+#   name        = 展示名（存库主键）
+#   keyword     = 在公众平台搜索该公众号用的关键词（尽量用公众号准确名称）
+#   city        = 所在城市
+#   category    = 分类：历史文化 / 博物馆 / 自然风光 / 主题乐园 / 古镇古城 / 都市地标
+#   ticket_url  = 官方购票/预约链接（留空表示主要通过公众号菜单购票）
+#   ticket_note = 购票方式说明
+# 首次抓取时自动搜索并缓存 fakeid；如搜索结果不对，可手动加 fakeid 字段覆盖
+accounts:
+  # ---------- 北京 ----------
+  - name: 故宫博物院（微故宫）
+    keyword: 微故宫
+    city: 北京
+    category: 历史文化
+    ticket_url: https://ticket.dpm.org.cn/
+    ticket_note: 提前7日20:00放票，实名预约，外国游客可用护照预约；周一闭馆
+  - name: 八达岭长城
+    keyword: 八达岭长城
+    city: 北京
+    category: 历史文化
+    ticket_url: https://www.badaling.cn/
+    ticket_note: 官网或"八达岭长城"公众号实名预约，可提前10天，护照可购票
+  - name: 慕田峪长城
+    keyword: 慕田峪长城
+    city: 北京
+    category: 历史文化
+    ticket_url: https://www.mutianyugreatwall.com/
+    ticket_note: 官网或"慕田峪长城官方平台"公众号实名预约，可提前30天，护照可购票
+  - name: 颐和园
+    keyword: 颐和园
+    city: 北京
+    category: 历史文化
+    ticket_url: https://www.bjgyol.com.cn/
+    ticket_note: 北京市属公园统一平台"畅游公园"预约，或公众号购票直通车
+  - name: 天坛公园
+    keyword: 微天坛
+    fakeid: MzA3NzcxNzY3MA==   # 官方内容号"微天坛"（同名搜索会先命中官方购票平台号）
+    city: 北京
+    category: 历史文化
+    ticket_url: https://www.bjgyol.com.cn/
+    ticket_note: 北京市属公园统一平台"畅游公园"预约，或公众号购票直通车
+  - name: 中国国家博物馆
+    keyword: 国家博物馆
+    city: 北京
+    category: 博物馆
+    ticket_url: https://www.chnmuseum.cn/
+    ticket_note: 免费，官网/公众号实名预约，周一闭馆
+  - name: 北京环球度假区
+    keyword: 北京环球度假区
+    city: 北京
+    category: 主题乐园
+    ticket_url: https://www.universalbeijingresort.com/
+    ticket_note: 官网、官方App或公众号购票，支持指定日期票
+  # ---------- 西安 ----------
+  - name: 秦始皇帝陵博物院（兵马俑）
+    keyword: 秦始皇帝陵博物院
+    city: 西安
+    category: 历史文化
+    ticket_url: https://bmy.com.cn/
+    ticket_note: 官网或"秦始皇帝陵博物院"公众号实名预约，已取消线下售票，护照可预约
+  - name: 西安城墙
+    keyword: 西安城墙
+    city: 西安
+    category: 历史文化
+    ticket_url: http://www.chinaxiancitywall.com/
+    ticket_note: 官网在线商城或"西安城墙景区"小程序购票（可提前7天，已无线下窗口）
+  - name: 陕西历史博物馆
+    keyword: 陕西历史博物馆
+    city: 西安
+    category: 博物馆
+    ticket_url: https://www.sxhm.com/
+    ticket_note: 免费不免票，官网/公众号提前实名预约，周一闭馆
+  # ---------- 上海 ----------
+  - name: 上海迪士尼度假区
+    keyword: 上海迪士尼度假区
+    fakeid: MzA3Mjk1MzAwOQ==   # 官方主号（微信号 ShangHaiDisneyResort，同名搜索第一名是招聘号）
+    city: 上海
+    category: 主题乐园
+    ticket_url: https://www.shanghaidisneyresort.com/
+    ticket_note: 官网（有英文版）、官方App或公众号购票，指定日期票
+  - name: 东方明珠
+    keyword: 东方明珠
+    city: 上海
+    category: 都市地标
+    ticket_url: https://www.orientalpearltower.com/
+    ticket_note: 官网或"东方明珠"公众号在线购票，观光票分层分票种
+  - name: 上海博物馆
+    keyword: 上海博物馆
+    city: 上海
+    category: 博物馆
+    ticket_note: 免费，公众号/官网实名预约
+  # ---------- 江南 ----------
+  - name: 杭州西湖
+    keyword: 杭州西湖风景名胜区
+    city: 杭州
+    category: 自然风光
+    ticket_note: 环湖景区免费开放；雷峰塔等个别景点公众号/现场购票
+  - name: 乌镇
+    keyword: 乌镇旅游
+    city: 嘉兴
+    category: 古镇古城
+    ticket_url: https://www.wuzhen.com.cn/
+    ticket_note: 官网或公众号购票，东栅/西栅分票与联票
+  - name: 苏州拙政园
+    keyword: 拙政园
+    city: 苏州
+    category: 古镇古城
+    ticket_note: 通过官方公众号实名预约购票，旺季需提前
+  # ---------- 自然风光 ----------
+  - name: 黄山风景区
+    keyword: 黄山旅游官方平台
+    city: 黄山
+    category: 自然风光
+    ticket_note: 通过官方公众号菜单购票（门票+索道）
+  - name: 张家界（武陵源）
+    keyword: 张家界旅游
+    city: 张家界
+    category: 自然风光
+    ticket_url: http://www.hnzjj.com/
+    ticket_note: 张家界·武陵源旅游官方网站门票预订，或"张家界一机游"小程序购票
+  - name: 张家界天门山
+    keyword: 天门山
+    city: 张家界
+    category: 自然风光
+    ticket_url: http://www.hnzjj.com/index.php/Ticket/show/6.html
+    ticket_note: 官网或"张家界一机游"小程序分时段实名购票（含索道），旺季需抢票
+  - name: 九寨沟
+    keyword: 九寨沟
+    city: 阿坝州
+    category: 自然风光
+    ticket_url: https://www.jiuzhai.com/
+    ticket_note: 官网或公众号实名购票，每日限流
+  - name: 桂林漓江
+    keyword: 桂林漓江景区
+    city: 桂林
+    category: 自然风光
+    ticket_note: 漓江游船票通过官方公众号/售票处购买
+  - name: 泰山
+    keyword: 泰山景区
+    city: 泰安
+    category: 自然风光
+    ticket_note: 通过"泰山景区"公众号实名购票
+  # ---------- 西南 / 其他 ----------
+  - name: 成都大熊猫繁育研究基地
+    keyword: 成都大熊猫繁育研究基地
+    city: 成都
+    category: 自然风光
+    ticket_url: https://www.panda.org.cn/
+    ticket_note: 仅官方公众号/小程序售票（2024年起停止第三方代售），可提前14天
+  - name: 布达拉宫
+    keyword: 布达拉宫官方平台
+    city: 拉萨
+    category: 历史文化
+    ticket_url: http://www.potalapalace.cn/
+    ticket_note: 官网或公众号跳转"布达拉宫票务预订系统"小程序，提前一天7点放票，旺季名额紧张
+  - name: 莫高窟
+    keyword: 莫高窟
+    city: 敦煌
+    category: 历史文化
+    ticket_url: https://www.mgk.org.cn/
+    ticket_note: 莫高窟参观预约网为唯一官方售票渠道，外语讲解票200元，可提前30天
+  - name: 丽江古城
+    keyword: 丽江古城游
+    city: 丽江
+    category: 古镇古城
+    ticket_note: 古城免费进入；古城维护费及内部景点见公众号说明
+  - name: 少林寺
+    keyword: 嵩山少林景区
+    fakeid: MzAxOTM3MzA2MA==   # 景区官方号"嵩山少林景区"（搜"少林寺"第一名是嵩山旅游，非官方）
+    city: 登封
+    category: 历史文化
+    ticket_note: 通过官方公众号/景区售票系统购票
+  - name: 广州塔
+    keyword: 广州塔
+    city: 广州
+    category: 都市地标
+    ticket_url: https://www.cantontower.com/
+    ticket_note: 官网或公众号购票，观景/塔顶项目分票种
+  - name: 长隆旅游度假区
+    keyword: 长隆
+    city: 广州
+    category: 主题乐园
+    ticket_url: https://www.chimelong.com/
+    ticket_note: 官网（有英文版）或公众号购票，园区多需注意选对园
+  - name: 哈尔滨冰雪大世界
+    keyword: 哈尔滨冰雪大世界
+    city: 哈尔滨
+    category: 主题乐园
+    ticket_note: 季节性开放（冬季），通过官方公众号/小程序购票
+  # ---------- 扩充：北京 ----------
+  - name: 雍和宫
+    keyword: 雍和宫
+    city: 北京
+    category: 历史文化
+    ticket_note: 通过"雍和宫"公众号实名预约购票
+  - name: 恭王府
+    keyword: 恭王府博物馆
+    city: 北京
+    category: 历史文化
+    ticket_note: 通过"恭王府博物馆"公众号实名预约购票，周一闭馆
+  - name: 明十三陵
+    keyword: 明十三陵
+    city: 北京
+    category: 历史文化
+    ticket_note: 通过官方公众号/景区售票系统购票
+  - name: 古北水镇（司马台长城）
+    keyword: 古北水镇
+    city: 北京
+    category: 古镇古城
+    ticket_url: https://www.wtown.com/
+    ticket_note: 官网或"古北水镇"公众号购票，司马台长城需单独预约
+  # ---------- 扩充：上海 ----------
+  - name: 豫园
+    keyword: 豫园
+    city: 上海
+    category: 古镇古城
+    ticket_note: 园林门票通过公众号/现场购票，商城街区免费
+  - name: 上海野生动物园
+    keyword: 上海野生动物园
+    city: 上海
+    category: 主题乐园
+    ticket_note: 通过官方公众号/小程序购票
+  - name: 上海中心（上海之巅观光厅）
+    keyword: 上海之巅
+    city: 上海
+    category: 都市地标
+    ticket_note: 通过官方公众号/小程序购观光厅门票
+  # ---------- 扩充：西安/西北 ----------
+  - name: 华山
+    keyword: 华山景区
+    city: 渭南
+    category: 自然风光
+    ticket_note: 通过官方公众号/景区售票系统实名购票（门票+索道分购）
+  - name: 大唐不夜城
+    keyword: 大唐不夜城
+    city: 西安
+    category: 都市地标
+    ticket_note: 街区免费开放，演出活动信息见公众号
+  - name: 华清宫
+    keyword: 华清宫
+    city: 西安
+    category: 历史文化
+    ticket_note: 通过官方公众号购票，《长恨歌》演出需单独订票
+  - name: 张掖七彩丹霞
+    keyword: 七彩丹霞
+    city: 张掖
+    category: 自然风光
+    ticket_note: 通过官方公众号/景区售票系统购票
+  # ---------- 扩充：四川/重庆 ----------
+  - name: 乐山大佛
+    keyword: 乐山大佛景区
+    city: 乐山
+    category: 历史文化
+    ticket_note: 通过官方公众号实名购票，游船与登山道分票
+  - name: 峨眉山
+    keyword: 峨眉山景区
+    city: 乐山
+    category: 自然风光
+    ticket_note: 通过官方公众号/景区售票系统购票（门票+索道）
+  - name: 都江堰（青城山）
+    keyword: 青城山都江堰
+    city: 成都
+    category: 历史文化
+    ticket_note: 通过"青城山都江堰"公众号购票
+  - name: 重庆洪崖洞
+    keyword: 洪崖洞
+    city: 重庆
+    category: 都市地标
+    ticket_note: 免费开放，节假日需在公众号预约
+  # ---------- 扩充：云南 ----------
+  - name: 玉龙雪山
+    keyword: 丽江玉龙雪山
+    city: 丽江
+    category: 自然风光
+    ticket_note: 通过官方公众号/"丽江旅游集团"小程序购票（大索道需抢票）
+  - name: 大理古城
+    keyword: 大理古城
+    city: 大理
+    category: 古镇古城
+    ticket_note: 古城免费开放，内部景点单独购票
+  # ---------- 扩充：广西 ----------
+  - name: 阳朔（遇龙河/十里画廊）
+    keyword: 阳朔旅游
+    city: 桂林
+    category: 自然风光
+    ticket_note: 各景点通过官方公众号/现场购票，遇龙河竹筏需预约
+  - name: 龙脊梯田
+    keyword: 龙脊梯田
+    city: 桂林
+    category: 自然风光
+    ticket_note: 通过官方公众号/景区售票处购票
+  # ---------- 扩充：江南 ----------
+  - name: 苏州博物馆
+    keyword: 苏州博物馆
+    city: 苏州
+    category: 博物馆
+    ticket_note: 免费，通过"苏州博物馆"公众号实名预约，周一闭馆
+  - name: 周庄
+    keyword: 周庄旅游
+    city: 苏州
+    category: 古镇古城
+    ticket_note: 通过官方公众号/景区售票处购票
+  - name: 南京中山陵
+    keyword: 中山陵园
+    city: 南京
+    category: 历史文化
+    ticket_note: 免费，通过"中山陵园"公众号预约，周一闭馆（陵寝）
+  # ---------- 扩充：中原/华中/北方 ----------
+  - name: 龙门石窟
+    keyword: 龙门石窟
+    city: 洛阳
+    category: 历史文化
+    ticket_note: 通过官方公众号/景区售票系统实名购票
+  - name: 平遥古城
+    keyword: 平遥古城
+    city: 晋中
+    category: 古镇古城
+    ticket_note: 古城免费进入，景点通票通过公众号/售票处购买
+  - name: 云冈石窟
+    keyword: 云冈石窟
+    city: 大同
+    category: 历史文化
+    ticket_note: 通过官方公众号/景区售票系统购票
+  - name: 黄鹤楼
+    keyword: 黄鹤楼
+    city: 武汉
+    category: 历史文化
+    ticket_note: 通过"黄鹤楼"公众号实名购票
+  # ---------- 扩充：东南 ----------
+  - name: 厦门鼓浪屿
+    keyword: 鼓浪屿
+    city: 厦门
+    category: 古镇古城
+    ticket_url: https://www.xmferry.com/
+    ticket_note: 上岛船票通过"厦门轮渡"官网/公众号实名购买（外地游客走东渡码头），岛上景点联票另购
